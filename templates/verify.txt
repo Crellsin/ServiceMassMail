@@ -1,0 +1,13 @@
+Your Verification Code: {{code}}
+Hello,
+
+Your verification code is: {{code}}
+
+Please enter this code to verify your account with {{app_name}}.
+
+This code will expire in {{expiry_minutes}} minutes.
+
+If you didn't request this code, please ignore this email.
+
+Best regards,
+{{app_name}} Team

@@ -1,0 +1,16 @@
+Welcome to {{app_name}}, {{name}}!
+Dear {{name}},
+
+Welcome to {{app_name}}! We're excited to have you on board.
+
+Your account details:
+- Username: {{username}}
+- Email: {{email}}
+- Signup Date: {{signup_date}}
+
+To get started, please verify your email address.
+
+If you have any questions, please contact our support team.
+
+Best regards,
+{{app_name}} Team

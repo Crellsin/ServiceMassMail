@@ -1,0 +1,9 @@
+Notification: {{title}}
+{{title}}
+
+{{message}}
+
+This notification was sent by {{app_name}}.
+
+Best regards,
+{{app_name}} Team

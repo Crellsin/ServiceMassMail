@@ -1,0 +1,53 @@
+{
+  "templates": [
+    {
+      "name": "verify",
+      "file_path": "templates/verify.txt",
+      "html_file_path": "templates/verify.html",
+      "placeholders": [
+        "app_name",
+        "code",
+        "expiry_minutes"
+      ],
+      "description": "Verification code email template for account verification"
+    },
+    {
+      "name": "password_reset",
+      "file_path": "templates/password_reset.txt",
+      "html_file_path": "templates/password_reset.html",
+      "placeholders": [
+        "app_name",
+        "expiry_hours",
+        "name",
+        "reset_code"
+      ],
+      "description": "Password reset confirmation email template"
+    },
+    {
+      "name": "notification",
+      "file_path": "templates/notification.txt",
+      "html_file_path": "templates/notification.html",
+      "placeholders": [
+        "app_name",
+        "message",
+        "title"
+      ],
+      "description": "General notification email template"
+    },
+    {
+      "name": "welcome",
+      "file_path": "templates/welcome.txt",
+      "html_file_path": "templates/welcome.html",
+      "placeholders": [
+        "app_name",
+        "email",
+        "name",
+        "signup_date",
+        "username"
+      ],
+      "description": "Welcome email template for new user registration"
+    }
+  ],
+  "generated_at": "2025-12-23T18:36:27.235352",
+  "total_templates": 4
+}
