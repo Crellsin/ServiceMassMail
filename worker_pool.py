@@ -1,6 +1,7 @@
 import threading
 import time
 import logging
+import json
 from queue import Empty
 from typing import Optional
 from pathlib import Path
@@ -9,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, Future
 
 from queue_manager import QueueManager, EmailRequest
 from logger_engine import setup_logger
+from email_sender import EmailSender, EmailMessage, EmailFormat, EmailPriority
 
 class EmailWorker:
     """Worker that processes email batches from the queue."""
@@ -26,8 +28,23 @@ class EmailWorker:
         self.logger = setup_logger(f"Worker-{worker_id}", f"logs/worker_{worker_id}.log")
         self.running = False
         self.current_batch = None
+        self.email_sender = EmailSender()
         
-    def process_batch(self, batch_data: dict) -> bool:
+    def _is_html(self, body: str) -> bool:
+        """
+        Simple heuristic to check if body contains HTML.
+        
+        Args:
+            body: Email body text
+            
+        Returns:
+            True if body appears to contain HTML, False otherwise
+        """
+        # Basic check for common HTML tags
+        html_tags = ['<div', '<p>', '<br', '<table', '<tr', '<td', '<th', '<ul', '<ol', '<li', '<h1', '<h2', '<h3', '<h4', '<h5', '<h6']
+        return any(tag in body.lower() for tag in html_tags)
+    
+    def process_batch(self, batch_data: dict) -> tuple[bool, Optional[dict]]:
         """
         Process a batch of emails.
         
@@ -35,53 +52,115 @@ class EmailWorker:
             batch_data: Batch data dictionary from queue_manager
             
         Returns:
-            True if batch processed successfully, False otherwise
+            Tuple of (success, updated_batch_data)
+            - success: True if all emails were sent successfully, False otherwise
+            - updated_batch_data: If there are failed emails, returns updated batch data
+              with only failed emails (and their retry counts incremented). 
+              Returns None if all emails were successful.
         """
         batch_file = batch_data["file"]
-        emails = batch_data["data"].get("emails", [])
+        
+        # Validate batch data structure
+        if not isinstance(batch_data.get("data"), dict):
+            self.logger.error(f"Batch {batch_file.name} has invalid data structure: 'data' is not a dict")
+            return False, None
+        
+        original_data = batch_data["data"]
+        emails = original_data.get("emails", [])
+        if not isinstance(emails, list):
+            self.logger.error(f"Batch {batch_file.name} has invalid 'emails' field: not a list")
+            return False, None
         
         self.logger.info(f"Processing batch {batch_file.name} with {len(emails)} emails")
         
         successful_emails = 0
-        failed_emails = []
+        failed_email_dicts = []  # Will store the original email dicts that failed
         
         for email_dict in emails:
             try:
-                # Convert dict back to EmailRequest-like object
+                # Validate email_dict is a dictionary
+                if not isinstance(email_dict, dict):
+                    self.logger.error(f"Email entry is not a dict: {type(email_dict)}")
+                    email_dict["status"] = "failed"
+                    email_dict["retry_count"] = email_dict.get("retry_count", 0) + 1
+                    failed_email_dicts.append(email_dict)
+                    continue
+                
+                # Convert dict back to EmailRequest object
                 email_request = EmailRequest(**email_dict)
                 
-                # TODO: Actually send the email (will be integrated in Phase 2)
-                # For now, just simulate processing
-                self.logger.debug(f"Processing email to {email_request.to_email}")
+                # Determine email format based on content
+                if self._is_html(email_request.body):
+                    email_format = EmailFormat.HTML
+                else:
+                    email_format = EmailFormat.PLAIN
                 
-                # Simulate email sending
-                time.sleep(0.1)  # Simulate network delay
+                # Create EmailMessage from EmailRequest
+                email_message = EmailMessage(
+                    subject=email_request.subject,
+                    body=email_request.body,
+                    to_email=email_request.to_email,
+                    from_email=email_request.from_email,
+                    format=email_format,
+                    priority=EmailPriority(email_request.priority)
+                )
                 
-                # For testing: Always succeed for now
-                successful_emails += 1
+                self.logger.debug(f"Sending email to {email_request.to_email}")
                 
-                self.logger.debug(f"Successfully processed email {email_request.request_id}")
+                # Actually send the email
+                success = self.email_sender.send_email(email_message)
                 
+                if success:
+                    successful_emails += 1
+                    email_dict["status"] = "sent"
+                    self.logger.debug(f"Successfully sent email {email_request.request_id}")
+                else:
+                    self.logger.error(f"Failed to send email {email_request.request_id}")
+                    # Update status and increment retry count for failed email
+                    email_dict["status"] = "failed"
+                    email_dict["retry_count"] = email_dict.get("retry_count", 0) + 1
+                    email_dict["last_error"] = "Email sending failed after retries"
+                    failed_email_dicts.append(email_dict)
+                
+            except (TypeError, KeyError) as e:
+                # These are likely due to missing required fields in email_dict
+                self.logger.error(f"Failed to create EmailRequest from dict: {e}, dict: {email_dict}")
+                email_dict["status"] = "failed"
+                email_dict["retry_count"] = email_dict.get("retry_count", 0) + 1
+                failed_email_dicts.append(email_dict)
             except Exception as e:
                 self.logger.error(f"Failed to process email {email_dict.get('request_id')}: {e}")
-                failed_emails.append({
-                    "email": email_dict,
-                    "error": str(e)
-                })
+                email_dict["status"] = "failed"
+                email_dict["retry_count"] = email_dict.get("retry_count", 0) + 1
+                failed_email_dicts.append(email_dict)
         
-        # If all emails processed successfully, return True
-        if len(failed_emails) == 0:
-            self.logger.info(f"Batch {batch_file.name} processed successfully")
-            return True
+        # Check if all emails were successful
+        if len(failed_email_dicts) == 0:
+            self.logger.info(f"Batch {batch_file.name} processed successfully: {successful_emails} emails sent")
+            return True, None
         else:
-            self.logger.warning(f"Batch {batch_file.name} had {len(failed_emails)} failures")
-            # TODO: Handle retry logic for failed emails (Phase 2)
-            return False
+            self.logger.warning(
+                f"Batch {batch_file.name} completed with {len(failed_email_dicts)} failures. "
+                f"Successful: {successful_emails}, Failed: {len(failed_email_dicts)}"
+            )
+            
+            # Create updated batch data with only failed emails (with updated status and retry count)
+            updated_data = original_data.copy()
+            updated_data["emails"] = failed_email_dicts
+            updated_data["status"] = "pending"  # Reset status so it can be retried
+            updated_data["updated_at"] = datetime.now().isoformat()
+            
+            return False, updated_data
     
     def run(self):
         """Main worker loop."""
         self.running = True
         self.logger.info(f"Worker {self.worker_id} started")
+        
+        consecutive_failures = 0
+        max_consecutive_failures = 3
+        base_retry_delay = 5  # seconds
+        max_retry_delay = 60  # seconds
         
         while self.running:
             try:
@@ -90,26 +169,46 @@ class EmailWorker:
                 
                 if not batches:
                     # No batches available, wait a bit
-                    time.sleep(5)
+                    time.sleep(base_retry_delay)
+                    consecutive_failures = 0  # Reset failures on successful check
                     continue
                 
                 # Process the batch
                 batch_data = batches[0]
                 self.current_batch = batch_data
                 
-                success = self.process_batch(batch_data)
+                success, updated_batch_data = self.process_batch(batch_data)
                 
                 # Mark batch as complete
                 self.queue_manager.mark_batch_complete(
                     batch_data["file"], 
-                    successful=success
+                    successful=success,
+                    updated_data=updated_batch_data
                 )
                 
                 self.current_batch = None
+                consecutive_failures = 0  # Reset on successful batch processing
+                
+            except json.JSONDecodeError as e:
+                consecutive_failures += 1
+                retry_delay = min(base_retry_delay * (2 ** (consecutive_failures - 1)), max_retry_delay)
+                self.logger.error(f"JSON decoding error in worker {self.worker_id}: {e}. "
+                                 f"Retry in {retry_delay} seconds (failure #{consecutive_failures})")
+                time.sleep(retry_delay)
                 
             except Exception as e:
-                self.logger.error(f"Error in worker {self.worker_id}: {e}")
-                time.sleep(10)  # Wait before retrying
+                consecutive_failures += 1
+                retry_delay = min(base_retry_delay * (2 ** (consecutive_failures - 1)), max_retry_delay)
+                self.logger.error(f"Error in worker {self.worker_id}: {e}. "
+                                 f"Retry in {retry_delay} seconds (failure #{consecutive_failures})")
+                time.sleep(retry_delay)
+                
+                # If we've hit too many consecutive failures, take a longer break
+                if consecutive_failures >= max_consecutive_failures:
+                    self.logger.warning(f"Worker {self.worker_id} has had {consecutive_failures} consecutive failures. "
+                                       f"Taking extended break of {max_retry_delay} seconds.")
+                    time.sleep(max_retry_delay)
+                    consecutive_failures = 0  # Reset after extended break
     
     def stop(self):
         """Stop the worker."""
@@ -217,12 +316,13 @@ class BatchProcessor:
         
         # Create a temporary worker to process this batch
         worker = EmailWorker(0, self.queue_manager)
-        success = worker.process_batch(batch_data)
+        success, updated_batch_data = worker.process_batch(batch_data)
         
         # Mark batch as complete
         self.queue_manager.mark_batch_complete(
             batch_data["file"], 
-            successful=success
+            successful=success,
+            updated_data=updated_batch_data
         )
         
         return True

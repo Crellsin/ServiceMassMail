@@ -1,0 +1,20 @@
+{
+  "original_email": {
+    "request_id": "test-fail-123",
+    "subject": "Test Failing Email",
+    "body": "This email will fail",
+    "to_email": "invalid@invalid.invalid",
+    "from_email": null,
+    "template_name": null,
+    "template_vars": null,
+    "priority": 2,
+    "status": "failed",
+    "created_at": "2026-01-01T21:26:51.672173",
+    "retry_count": 1,
+    "max_retries": 1,
+    "last_error": "Email sending failed after retries"
+  },
+  "failure_reason": "Email sending failed after retries",
+  "moved_to_dead_letter_at": "2026-01-02T12:06:16.690805",
+  "can_be_retried": false
+}

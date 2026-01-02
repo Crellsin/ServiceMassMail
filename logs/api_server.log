@@ -1,1 +1,150 @@
-2025-12-23 20:25:00 | api_server | INFO     | Stopping worker pool...
+2025-12-30 15:37:43 | api_server | INFO     | Starting Email Engine API server
+2025-12-30 15:37:43 | api_server | INFO     | Auto-processing enabled: True
+2025-12-30 15:37:43 | api_server | INFO     | Worker pool started with 3 workers
+2025-12-30 15:37:51 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 15:37:51 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 15:37:51 | api_server | INFO     | Email queued with ID: 4a5c9fae-8a03-4d0d-89c2-18715950eb83
+2025-12-30 15:37:51 | api_server | INFO     | Email queued with ID: 4a5c9fae-8a03-4d0d-89c2-18715950eb83
+2025-12-30 15:37:51 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 15:37:51 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 15:37:51 | api_server | INFO     | Email queued with ID: 5c71c13f-388c-435f-bf50-422225984ff9
+2025-12-30 15:37:51 | api_server | INFO     | Email queued with ID: 5c71c13f-388c-435f-bf50-422225984ff9
+2025-12-30 15:37:51 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 15:37:51 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 15:37:51 | api_server | INFO     | Email queued with ID: 5ff7cb03-bf6c-41ee-9ebd-5707d43d2a41
+2025-12-30 15:37:51 | api_server | INFO     | Email queued with ID: 5ff7cb03-bf6c-41ee-9ebd-5707d43d2a41
+2025-12-30 16:04:02 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:04:02 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:04:10 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:04:10 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:04:40 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:04:40 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:04:55 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:04:55 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:05:04 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:05:04 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:18:59 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 16:18:59 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 16:18:59 | api_server | INFO     | Email queued with ID: 44128de9-805b-423b-ae5c-b6da617a72a1
+2025-12-30 16:18:59 | api_server | INFO     | Email queued with ID: 44128de9-805b-423b-ae5c-b6da617a72a1
+2025-12-30 16:18:59 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 16:18:59 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 16:18:59 | api_server | INFO     | Email queued with ID: 85fa4eb0-6de2-4355-a435-ceb45d28b531
+2025-12-30 16:18:59 | api_server | INFO     | Email queued with ID: 85fa4eb0-6de2-4355-a435-ceb45d28b531
+2025-12-30 16:18:59 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 16:18:59 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 16:18:59 | api_server | INFO     | Email queued with ID: a5966b46-353f-469b-b613-25199921b212
+2025-12-30 16:18:59 | api_server | INFO     | Email queued with ID: a5966b46-353f-469b-b613-25199921b212
+2025-12-30 16:19:35 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:19:35 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:19:40 | api_server | INFO     | Starting Email Engine API server
+2025-12-30 16:19:40 | api_server | INFO     | Auto-processing enabled: True
+2025-12-30 16:19:40 | api_server | INFO     | Worker pool started with 3 workers
+2025-12-30 16:19:47 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 16:19:47 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 16:19:47 | api_server | INFO     | Email queued with ID: e436bac1-89f3-43c1-b4d9-83742b98db6b
+2025-12-30 16:19:47 | api_server | INFO     | Email queued with ID: e436bac1-89f3-43c1-b4d9-83742b98db6b
+2025-12-30 16:19:47 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 16:19:47 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 16:19:47 | api_server | INFO     | Email queued with ID: f7bdfcd5-918f-423e-9cea-0d8c4a5a7565
+2025-12-30 16:19:47 | api_server | INFO     | Email queued with ID: f7bdfcd5-918f-423e-9cea-0d8c4a5a7565
+2025-12-30 16:19:47 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 16:19:47 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 16:19:47 | api_server | INFO     | Email queued with ID: c0ed3b54-c4ed-4b42-98f8-32731d666710
+2025-12-30 16:19:47 | api_server | INFO     | Email queued with ID: c0ed3b54-c4ed-4b42-98f8-32731d666710
+2025-12-30 16:21:58 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 16:21:58 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 16:21:58 | api_server | INFO     | Email queued with ID: 0f1bc559-6c1b-4016-82d8-cffe2e821a72
+2025-12-30 16:21:58 | api_server | INFO     | Email queued with ID: 0f1bc559-6c1b-4016-82d8-cffe2e821a72
+2025-12-30 16:21:58 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 16:21:58 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 16:21:58 | api_server | INFO     | Email queued with ID: 3c5cc906-0f24-44ee-82cc-c981cbac4127
+2025-12-30 16:21:58 | api_server | INFO     | Email queued with ID: 3c5cc906-0f24-44ee-82cc-c981cbac4127
+2025-12-30 16:21:59 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 16:21:59 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 16:21:59 | api_server | INFO     | Email queued with ID: e984eb3c-3cf1-486f-96b1-238fbd8e15da
+2025-12-30 16:21:59 | api_server | INFO     | Email queued with ID: e984eb3c-3cf1-486f-96b1-238fbd8e15da
+2025-12-30 16:22:19 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 16:22:19 | api_server | INFO     | Received email request for liderador_as@hotmail.com
+2025-12-30 16:22:19 | api_server | INFO     | Email queued with ID: b53f3be9-c776-4d31-ab88-6aae3f94250b
+2025-12-30 16:22:19 | api_server | INFO     | Email queued with ID: b53f3be9-c776-4d31-ab88-6aae3f94250b
+2025-12-30 16:22:19 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 16:22:19 | api_server | INFO     | Received email request for liderador123@gmail.com
+2025-12-30 16:22:19 | api_server | INFO     | Email queued with ID: fe3f33f7-18af-4c15-aa8b-ede0b22e558b
+2025-12-30 16:22:19 | api_server | INFO     | Email queued with ID: fe3f33f7-18af-4c15-aa8b-ede0b22e558b
+2025-12-30 16:22:19 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 16:22:19 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2025-12-30 16:22:19 | api_server | INFO     | Email queued with ID: 82508f01-250b-419a-895f-017b1a303159
+2025-12-30 16:22:19 | api_server | INFO     | Email queued with ID: 82508f01-250b-419a-895f-017b1a303159
+2025-12-30 16:41:23 | api_server | INFO     | Stopping worker pool...
+2025-12-30 16:41:23 | api_server | INFO     | Stopping worker pool...
+2026-01-01 19:06:49 | api_server | INFO     | Starting Email Engine API server
+2026-01-01 19:06:49 | api_server | INFO     | Auto-processing enabled: True
+2026-01-01 19:06:49 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-01 19:11:14 | api_server | INFO     | Stopping worker pool...
+2026-01-01 19:11:14 | api_server | INFO     | Stopping worker pool...
+2026-01-01 19:11:41 | api_server | INFO     | Stopping worker pool...
+2026-01-01 19:11:41 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:18:36 | api_server | INFO     | Starting Email Engine API server
+2026-01-01 21:18:36 | api_server | INFO     | Auto-processing enabled: True
+2026-01-01 21:18:36 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-01 21:19:31 | api_server | INFO     | Starting Email Engine API server
+2026-01-01 21:19:31 | api_server | INFO     | Auto-processing enabled: True
+2026-01-01 21:19:31 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-01 21:19:32 | api_server | INFO     | Received email request for jamalnader@jamalnader.com
+2026-01-01 21:19:32 | api_server | INFO     | Received email request for jamalnader@jamalnader.com
+2026-01-01 21:19:32 | api_server | INFO     | Email queued with ID: 7210d11e-1dd0-49fe-b551-e01e27b57b55
+2026-01-01 21:19:32 | api_server | INFO     | Email queued with ID: 7210d11e-1dd0-49fe-b551-e01e27b57b55
+2026-01-01 21:20:40 | api_server | INFO     | Starting Email Engine API server
+2026-01-01 21:20:40 | api_server | INFO     | Auto-processing enabled: True
+2026-01-01 21:20:40 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-01 21:20:41 | api_server | INFO     | Received email request for jamalnader@jamalnader.com
+2026-01-01 21:20:41 | api_server | INFO     | Received email request for jamalnader@jamalnader.com
+2026-01-01 21:20:41 | api_server | INFO     | Email queued with ID: 9a9c8826-f55d-42e8-8ca3-2aacbe7a9366
+2026-01-01 21:20:41 | api_server | INFO     | Email queued with ID: 9a9c8826-f55d-42e8-8ca3-2aacbe7a9366
+2026-01-01 21:23:42 | api_server | INFO     | Starting Email Engine API server
+2026-01-01 21:23:42 | api_server | INFO     | Auto-processing enabled: True
+2026-01-01 21:23:42 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-01 21:23:43 | api_server | INFO     | Received email request for jamalnader@jamalnader.com
+2026-01-01 21:23:43 | api_server | INFO     | Received email request for jamalnader@jamalnader.com
+2026-01-01 21:23:43 | api_server | INFO     | Email queued with ID: de0cc9cf-78a3-4501-8060-2d8308e8cdbf
+2026-01-01 21:23:43 | api_server | INFO     | Email queued with ID: de0cc9cf-78a3-4501-8060-2d8308e8cdbf
+2026-01-01 21:24:45 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:24:45 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:24:50 | api_server | INFO     | Starting Email Engine API server
+2026-01-01 21:24:50 | api_server | INFO     | Auto-processing enabled: True
+2026-01-01 21:24:50 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-01 21:26:20 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:26:20 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:26:25 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:26:25 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:26:35 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:26:35 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:26:39 | api_server | INFO     | Starting Email Engine API server
+2026-01-01 21:26:39 | api_server | INFO     | Auto-processing enabled: True
+2026-01-01 21:26:39 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-01 21:26:51 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2026-01-01 21:26:51 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2026-01-01 21:26:51 | api_server | INFO     | Email queued with ID: 0409153d-fe07-4f7e-b801-d79184d7480f
+2026-01-01 21:26:51 | api_server | INFO     | Email queued with ID: 0409153d-fe07-4f7e-b801-d79184d7480f
+2026-01-01 21:47:25 | api_server | INFO     | Stopping worker pool...
+2026-01-01 21:47:25 | api_server | INFO     | Stopping worker pool...
+2026-01-02 12:06:02 | api_server | INFO     | Starting Email Engine API server
+2026-01-02 12:06:02 | api_server | INFO     | Auto-processing enabled: True
+2026-01-02 12:06:02 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-02 12:07:44 | api_server | INFO     | Stopping worker pool...
+2026-01-02 12:07:44 | api_server | INFO     | Stopping worker pool...
+2026-01-02 12:07:48 | api_server | INFO     | Starting Email Engine API server
+2026-01-02 12:07:48 | api_server | INFO     | Auto-processing enabled: True
+2026-01-02 12:07:48 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-02 12:07:57 | api_server | INFO     | Stopping worker pool...
+2026-01-02 12:07:57 | api_server | INFO     | Stopping worker pool...
+2026-01-02 12:07:59 | api_server | INFO     | Starting Email Engine API server
+2026-01-02 12:07:59 | api_server | INFO     | Auto-processing enabled: True
+2026-01-02 12:07:59 | api_server | INFO     | Worker pool started with 3 workers
+2026-01-02 12:10:56 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2026-01-02 12:10:56 | api_server | INFO     | Received email request for jamalnade@jamalnader.com
+2026-01-02 12:10:56 | api_server | INFO     | Email queued with ID: ba544ab8-60aa-49e8-835d-1b0f5843c339
+2026-01-02 12:10:56 | api_server | INFO     | Email queued with ID: ba544ab8-60aa-49e8-835d-1b0f5843c339
+2026-01-02 12:12:30 | api_server | INFO     | Stopping worker pool...
+2026-01-02 12:12:30 | api_server | INFO     | Stopping worker pool...

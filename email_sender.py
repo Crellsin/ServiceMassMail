@@ -129,9 +129,9 @@ class EmailSender:
                 # Connection is dead, remove from pool
                 del self._connection_pool[key]
         
-        # Create new connection
+        # Create new connection with timeout
         context = ssl.create_default_context()
-        conn = smtplib.SMTP_SSL(smtp_server, port, context=context)
+        conn = smtplib.SMTP_SSL(smtp_server, port, context=context, timeout=30)
         conn.ehlo()
         conn.login(settings.SENDER_EMAIL, settings.PASSWORD)
         

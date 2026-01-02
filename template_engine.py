@@ -372,7 +372,7 @@ Best regards,
         self._load_templates()
     
     def render_email(self, template_name: str, variables: Dict[str, Any], 
-                     to_email: str, from_email: Optional[str] = None) -> EmailMessage:
+                     to_email: str) -> EmailMessage:
         """
         Render an email from a template.
         
@@ -380,7 +380,7 @@ Best regards,
             template_name: Name of the template to use
             variables: Dictionary of variables to substitute
             to_email: Recipient email address
-            from_email: Sender email address (optional)
+
             
         Returns:
             EmailMessage object ready to send
@@ -404,7 +404,6 @@ Best regards,
             body=plain_body,
             html_body=html_body,
             to_email=to_email,
-            from_email=from_email,
             format=format
         )
         

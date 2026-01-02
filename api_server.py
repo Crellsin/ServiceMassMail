@@ -40,7 +40,6 @@ class EmailRequestModel(BaseModel):
     subject: str = Field(..., description="Email subject")
     body: str = Field(..., description="Email body (plain text or HTML)")
     to_email: str = Field(..., description="Recipient email address")
-    #from_email: Optional[str] = Field(None, description="Sender email address (optional)")
     template_name: Optional[str] = Field(None, description="Template name to use (optional)")
     template_vars: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Template variables")
     priority: int = Field(2, ge=1, le=3, description="Priority: 1=High, 2=Normal, 3=Low")
@@ -74,7 +73,6 @@ async def send_email(request: EmailRequestModel):
     - **subject**: Email subject
     - **body**: Email body (plain text or HTML)
     - **to_email**: Recipient email address
-    - **from_email**: Sender email address (optional)
     - **template_name**: Template name to use (optional)
     - **template_vars**: Template variables (if using template)
     - **priority**: Priority level (1=High, 2=Normal, 3=Low)
@@ -92,7 +90,6 @@ async def send_email(request: EmailRequestModel):
                     template_name=request.template_name,
                     variables=request.template_vars,
                     to_email=request.to_email,
-                    from_email=request.from_email
                 )
                 
                 # Create EmailRequest for queue
@@ -100,7 +97,6 @@ async def send_email(request: EmailRequestModel):
                     subject=email_msg.subject,
                     body=email_msg.body,
                     to_email=email_msg.to_email,
-                    from_email=email_msg.from_email,
                     template_name=request.template_name,
                     template_vars=request.template_vars,
                     priority=request.priority
@@ -115,7 +111,7 @@ async def send_email(request: EmailRequestModel):
                 subject=request.subject,
                 body=request.body,
                 to_email=request.to_email,
-                from_email=request.from_email,
+                #from_email=request.from_email,
                 template_name=None,
                 template_vars=None,
                 priority=request.priority

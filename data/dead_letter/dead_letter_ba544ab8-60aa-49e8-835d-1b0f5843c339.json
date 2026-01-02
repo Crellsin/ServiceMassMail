@@ -1,0 +1,20 @@
+{
+  "original_email": {
+    "request_id": "ba544ab8-60aa-49e8-835d-1b0f5843c339",
+    "subject": "API Integration Test",
+    "body": "This email was submitted via API integration test.",
+    "to_email": "jamalnade@jamalnader.com",
+    "from_email": null,
+    "template_name": null,
+    "template_vars": null,
+    "priority": 2,
+    "status": "failed",
+    "created_at": "2026-01-02T12:10:56.242143",
+    "retry_count": 3,
+    "max_retries": 3,
+    "last_error": "Email sending failed after retries"
+  },
+  "failure_reason": "Email sending failed after retries",
+  "moved_to_dead_letter_at": "2026-01-02T12:11:05.408515",
+  "can_be_retried": false
+}
