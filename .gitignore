@@ -1,3 +1,6 @@
 __pycache__
 *.log
 Tests
+testuse.py
+comprehensive_email_test.py
+test_ip_whitelist.py
