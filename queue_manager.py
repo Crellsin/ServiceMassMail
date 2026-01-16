@@ -2,6 +2,7 @@ import json
 import os
 import threading
 import tempfile
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -34,7 +35,8 @@ class EmailRequest:
 class QueueManager:
     """Manages email queue using JSON files with pagination (100 emails per batch)."""
     
-    def __init__(self, queue_dir: str = "data/queue", batch_size: int = 100, dead_letter_dir: str = "data/dead_letter"):
+    def __init__(self, queue_dir: str = "data/queue", batch_size: int = 100, 
+                 dead_letter_dir: str = "data/dead_letter", trash_dir: str = "data/trash"):
         """
         Initialize the queue manager.
         
@@ -42,16 +44,18 @@ class QueueManager:
             queue_dir: Directory to store queue batch files
             batch_size: Number of emails per batch file
             dead_letter_dir: Directory to store permanently failed emails
+            trash_dir: Directory to store processed batch files
         """
         self.queue_dir = Path(queue_dir)
         self.batch_size = batch_size
         self.dead_letter_dir = Path(dead_letter_dir)
+        self.trash_dir = Path(trash_dir)
         self.lock = threading.RLock()
         
-        # Create queue directory if it doesn't exist
+        # Create directories if they don't exist
         self.queue_dir.mkdir(parents=True, exist_ok=True)
-        # Create dead letter directory if it doesn't exist
         self.dead_letter_dir.mkdir(parents=True, exist_ok=True)
+        self.trash_dir.mkdir(parents=True, exist_ok=True)
         
         # Set up logger
         self.logger = setup_logger(__name__, 'logs/queue_manager.log')
@@ -61,7 +65,42 @@ class QueueManager:
     
     def _update_batch_index(self):
         """Scan queue directory and update the list of batch files."""
-        self.batch_files = sorted(list(self.queue_dir.glob("batch_*.json")))
+        # Only list files that are not currently being processed
+        self.batch_files = sorted([
+            f for f in self.queue_dir.glob("batch_*.json") 
+            if ".processing" not in f.name
+        ])
+    
+    def _move_to_trash(self, batch_file: Path, reason: str = "processed"):
+        """
+        Move a batch file to the trash directory.
+        
+        Args:
+            batch_file: Path to the batch file
+            reason: Reason for moving to trash (e.g., "processed", "invalid_json", "empty_batch")
+        """
+        if not batch_file.exists():
+            return
+        
+        # Create a unique filename with timestamp and reason
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        original_name = batch_file.stem
+        trash_name = f"{original_name}_{timestamp}_{reason}.json"
+        trash_path = self.trash_dir / trash_name
+        
+        try:
+            # Move the file to trash
+            shutil.move(str(batch_file), str(trash_path))
+            self.logger.info(f"Moved {batch_file.name} to trash ({reason})")
+        except Exception as e:
+            self.logger.error(f"Failed to move {batch_file.name} to trash: {e}")
+            # If moving fails, try to copy and then delete
+            try:
+                shutil.copy2(str(batch_file), str(trash_path))
+                batch_file.unlink(missing_ok=True)
+                self.logger.info(f"Copied and deleted {batch_file.name} to trash ({reason})")
+            except Exception as e2:
+                self.logger.error(f"Failed to copy and delete {batch_file.name}: {e2}")
     
     def _get_current_batch_file(self) -> Path:
         """Get the current batch file (most recent one that isn't full)."""
@@ -184,6 +223,25 @@ class QueueManager:
             priority=priority
         )
     
+    def _cleanup_stale_processing_files(self):
+        """
+        Clean up processing files that are older than 1 hour.
+        These are likely from workers that crashed and left the file in processing state.
+        """
+        import time
+        current_time = time.time()
+        stale_threshold = 3600  # 1 hour in seconds
+        
+        for processing_file in self.queue_dir.glob("*.processing.json"):
+            try:
+                # Get file modification time
+                mtime = processing_file.stat().st_mtime
+                if current_time - mtime > stale_threshold:
+                    self.logger.warning(f"Found stale processing file {processing_file.name}, moving to trash")
+                    self._move_to_trash(processing_file, reason="stale_processing")
+            except Exception as e:
+                self.logger.error(f"Error checking stale file {processing_file}: {e}")
+    
     def get_next_batch(self, max_batches: int = 1) -> List[Dict]:
         """
         Get the next batch(es) of emails for processing.
@@ -195,6 +253,8 @@ class QueueManager:
             List of batch data dictionaries
         """
         with self.lock:
+            # Clean up stale processing files before getting next batch
+            self._cleanup_stale_processing_files()
             self._update_batch_index()
             
             batches = []
@@ -203,30 +263,38 @@ class QueueManager:
                 if not batch_file.exists() or batch_file.stat().st_size == 0:
                     continue
                 
+                # Atomically rename the file to mark it as processing
+                processing_file = batch_file.with_name(batch_file.stem + ".processing.json")
                 try:
-                    with open(batch_file, 'r') as f:
-                        batch_data = json.load(f)
-                except json.JSONDecodeError as e:
-                    # Log and skip invalid JSON files
+                    # This rename is atomic and will fail if the file doesn't exist or we don't have permission
+                    batch_file.rename(processing_file)
+                except (FileNotFoundError, PermissionError, OSError) as e:
+                    # Another worker might have grabbed this file, skip it
+                    self.logger.debug(f"Could not rename {batch_file}: {e}")
                     continue
                 
-                # Skip batches already being processed or marked as failed
-                status = batch_data.get("status")
-                if status in ["processing", "failed"]:
+                # Load the data from the renamed file
+                try:
+                    with open(processing_file, 'r') as f:
+                        batch_data = json.load(f)
+                except json.JSONDecodeError as e:
+                    # If the JSON is invalid, move the file to trash and skip
+                    self.logger.error(f"Invalid JSON in {processing_file}: {e}")
+                    self._move_to_trash(processing_file, reason="invalid_json")
                     continue
                 
                 # Check if batch has any emails left to process
                 emails = batch_data.get("emails", [])
                 if not emails:
-                    # Empty batch, mark as completed and skip
-                    self.mark_batch_complete(batch_file, successful=True)
+                    # Empty batch, move to trash and skip
+                    self._move_to_trash(processing_file, reason="empty_batch")
                     continue
                 
-                # Mark batch as processing
+                # Update the batch data in memory with processing status
                 batch_data["status"] = "processing"
                 batch_data["processing_started_at"] = datetime.now().isoformat()
                 
-                # Atomic write for status update
+                # Write the updated status back to the file (atomic write)
                 temp_file = None
                 temp_path = None
                 try:
@@ -243,17 +311,20 @@ class QueueManager:
                     temp_file.close()
                     
                     # Atomic rename
-                    os.replace(temp_path, batch_file)
-                except Exception:
+                    os.replace(temp_path, processing_file)
+                except Exception as e:
                     # Clean up temp file if it exists
                     if temp_file and not temp_file.closed:
                         temp_file.close()
                     if temp_path and os.path.exists(temp_path):
                         os.unlink(temp_path)
+                    self.logger.error(f"Failed to update processing status for {processing_file}: {e}")
+                    # Move the file to trash since we can't update it
+                    self._move_to_trash(processing_file, reason="update_failed")
                     continue
                 
                 batches.append({
-                    "file": batch_file,
+                    "file": processing_file,
                     "data": batch_data
                 })
             
@@ -345,9 +416,32 @@ class QueueManager:
             if not batch_file.exists():
                 return
             
+            # Load the current batch data to update it with completion info
+            try:
+                if batch_file.stat().st_size > 0:
+                    with open(batch_file, 'r') as f:
+                        data = json.load(f)
+                else:
+                    # Empty file, just move to trash
+                    self._move_to_trash(batch_file, reason="empty")
+                    return
+            except (json.JSONDecodeError, FileNotFoundError):
+                # If file has invalid JSON or not found, move to trash
+                self._move_to_trash(batch_file, reason="corrupted")
+                return
+            
+            # Update batch metadata with completion info
+            data["completed_at"] = datetime.now().isoformat()
+            
             if successful:
-                # Delete the batch file if all emails were successful
-                batch_file.unlink(missing_ok=True)
+                # Mark all emails as sent if they were successful
+                for email in data.get("emails", []):
+                    if email.get("status") == "pending":
+                        email["status"] = "sent"
+                data["status"] = "completed"
+                # Write the updated data back to the file before moving to trash
+                self.update_batch(batch_file, data)
+                self._move_to_trash(batch_file, reason="success")
                 return
             
             # If we have updated_data, we need to filter out emails that have exceeded max_retries
@@ -369,31 +463,23 @@ class QueueManager:
                     updated_data["emails"] = remaining_emails
                     updated_data["status"] = "pending"
                     updated_data["last_retry_at"] = datetime.now().isoformat()
+                    updated_data["completed_at"] = datetime.now().isoformat()
                     self.update_batch(batch_file, updated_data)
+                    # Rename the file to remove .processing so it can be picked up again
+                    if ".processing" in batch_file.name:
+                        new_name = batch_file.with_name(batch_file.stem.replace('.processing', '') + '.json')
+                        batch_file.rename(new_name)
                 else:
-                    # All emails have exceeded max retries, delete the file
-                    batch_file.unlink(missing_ok=True)
+                    # All emails have exceeded max retries, move to trash
+                    data["status"] = "failed"
+                    self._move_to_trash(batch_file, reason="max_retries_exceeded")
                 return
             
             # Traditional failed batch handling (no updated_data provided)
-            try:
-                if batch_file.exists() and batch_file.stat().st_size > 0:
-                    with open(batch_file, 'r') as f:
-                        data = json.load(f)
-                else:
-                    # If file is empty or doesn't exist, just delete it
-                    batch_file.unlink(missing_ok=True)
-                    return
-            except json.JSONDecodeError:
-                # If file has invalid JSON, just delete it
-                batch_file.unlink(missing_ok=True)
-                return
-            
-            # Check if any emails are left to retry
             emails = data.get("emails", [])
             if not emails:
-                # No emails left, delete the file
-                batch_file.unlink(missing_ok=True)
+                # No emails left, move to trash
+                self._move_to_trash(batch_file, reason="empty")
                 return
             
             # Increment retry count for remaining emails
@@ -417,10 +503,16 @@ class QueueManager:
                 data["emails"] = remaining_emails
                 data["status"] = "pending"
                 data["last_retry_at"] = datetime.now().isoformat()
+                data["completed_at"] = datetime.now().isoformat()
                 self.update_batch(batch_file, data)
+                # Rename the file to remove .processing so it can be picked up again
+                if ".processing" in batch_file.name:
+                    new_name = batch_file.with_name(batch_file.stem.replace('.processing', '') + '.json')
+                    batch_file.rename(new_name)
             else:
-                # All emails have exceeded max retries, delete the file
-                batch_file.unlink(missing_ok=True)
+                # All emails have exceeded max retries, move to trash
+                data["status"] = "failed"
+                self._move_to_trash(batch_file, reason="max_retries_exceeded")
     
     def get_queue_stats(self) -> Dict[str, Any]:
         """
@@ -465,8 +557,11 @@ class QueueManager:
     
     def clear_queue(self):
         """Clear all emails from the queue."""
+        # Remove all batch files (including processing ones) and any leftover processing files
         for batch_file in self.queue_dir.glob("batch_*.json"):
-            batch_file.unlink()
+            batch_file.unlink(missing_ok=True)
+        for processing_file in self.queue_dir.glob("*.processing.json"):
+            processing_file.unlink(missing_ok=True)
         
         self._update_batch_index()
 
