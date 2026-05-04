@@ -1,6 +1,6 @@
 # Email Engine
 
-A high-performance, asynchronous email processing pipeline with a file-based queuing system, multipart template rendering engine, and RESTful API interface. Designed for reliable bulk email dispatch with configurable concurrency, retry semantics, and fault isolation.
+A high-performance Microservice, asynchronous email processing pipeline with a file-based queuing system, multipart template rendering engine, and RESTful API interface. Designed for reliable bulk email dispatch with configurable concurrency, retry semantics, and fault isolation.
 
 ## Features
 
