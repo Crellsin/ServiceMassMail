@@ -11,14 +11,14 @@ A high-performance, scalable email processing system with queue management, temp
 - **Thread-safe operations** for concurrent access
 - **Automatic cleanup** of processed emails
 
-### 📧 Enhanced Email Sender
+### Enhanced Email Sender
 
 - **Retry logic** with exponential backoff (3 attempts by default)
 - **Multipart email support** (HTML + plain text)
 - **Connection pooling** for efficient SMTP connections
 - **Priority levels** (High, Normal, Low)
 
-### 🎨 Template Engine
+### Template Engine
 
 - **File-based templates** stored in `templates/` directory
 - **{{variable}} substitution** with double curly brace syntax
@@ -27,7 +27,7 @@ A high-performance, scalable email processing system with queue management, temp
 - **Pre-defined templates** created automatically on first run
 - **JSON manifest** (`templates/manifest.json`) for template discovery
 
-### 🌐 REST API (FastAPI)
+### REST API (FastAPI)
 
 - **POST /email** - Submit emails to queue (with or without templates)
 - **GET /status** - Get queue statistics and status
@@ -37,7 +37,7 @@ A high-performance, scalable email processing system with queue management, temp
 - **POST /process-batch** - Manually trigger batch processing
 - **Interactive documentation** at `/docs`
 
-### 📊 Performance & Reliability
+### Performance & Reliability
 
 - **Handles thousands of requests** with paginated queue storage
 - **Worker pool** for concurrent email processing
@@ -321,5 +321,4 @@ send_simple_email(
 ```
 
  ## MISSING SECURYTY DONT USE
- 
-    - meh
+ ## RACE CONDITIONS FOUNT TOO DONOT USE
