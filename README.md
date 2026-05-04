@@ -1,129 +1,156 @@
-# Enhanced Email Engine
+# Email Engine
 
-A high-performance, scalable email processing system with queue management, template support, and REST API.
+A high-performance, asynchronous email processing pipeline with a file-based queuing system, multipart template rendering engine, and RESTful API interface. Designed for reliable bulk email dispatch with configurable concurrency, retry semantics, and fault isolation.
 
 ## Features
 
-### Scalable Queue System
+### Queue Management
 
-- **JSON-based persistent storage** with file pagination (100 emails per batch)
-- **FIFO processing** with configurable batch sizes
-- **Thread-safe operations** for concurrent access
-- **Automatic cleanup** of processed emails
+- **Persistent storage**: Egress emails are serialized as JSON and organized into paginated batch files (default: 100 emails per batch), bounded only by available disk space.
+- **FIFO ordering**: Batches are processed in first-in, first-out order. Batch processing order is deterministic based on file system enumeration.
+- **Thread-safe operations**: All queue mutations are guarded by a reentrant lock (`threading.RLock`), ensuring correctness under concurrent access from multiple worker threads.
+- **Atomic file operations**: Writes are performed via temporary file creation followed by atomic rename to prevent partial writes and data corruption.
+- **Automatic cleanup**: Processed batches are moved to a trash directory with a timestamp and status annotation; permanently failed emails are routed to a dead-letter store.
 
-### Enhanced Email Sender
+### Email Dispatch
 
-- **Retry logic** with exponential backoff (3 attempts by default)
-- **Multipart email support** (HTML + plain text)
-- **Connection pooling** for efficient SMTP connections
-- **Priority levels** (High, Normal, Low)
+- **Retry with exponential backoff**: Configurable retry attempts (default: 3) with exponential delay scaling (base: 1 second).
+- **Connection pooling**: SMTP connections are cached and reused across sends. Pooled connections are validated via `NOOP` before reuse; stale connections are evicted automatically.
+- **Multi-format support**: Supports plain text, HTML, and multipart (alternative) MIME structures.
+- **Priority classification**: Three-tier priority (High, Normal, Low) mapped to integer levels 1 through 3.
+- **Batch processing**: Worker pool dispatches emails in configurable batch sizes with partial-failure isolation (individual email failures do not abort the batch).
 
 ### Template Engine
 
-- **File-based templates** stored in `templates/` directory
-- **{{variable}} substitution** with double curly brace syntax
-- **Automatic multipart generation** from single template
-- **Template management** via API
-- **Pre-defined templates** created automatically on first run
-- **JSON manifest** (`templates/manifest.json`) for template discovery
+- **File-backed templates**: Templates are stored as plain text files in the `templates/` directory, with a JSON manifest (`templates/manifest.json`) for discovery.
+- **Variable interpolation**: Uses `{{variable}}` double-curly-brace syntax for substitution at render time.
+- **Automatic multipart generation**: When both `.txt` and `.html` variants of a template exist, the engine produces a multipart/alternative MIME message automatically.
+- **Pre-defined templates**: Four default templates (verify, welcome, password_reset, notification) are generated on first run.
+- **RESTful management**: Templates are discoverable via the API with optional metadata output.
 
-### REST API (FastAPI)
+### REST API
 
-- **POST /email** - Submit emails to queue (with or without templates)
-- **GET /status** - Get queue statistics and status
-- **GET /health** - System health check
-- **GET /templates** - List available templates
-- **GET /workers/status** - Get background worker status
-- **POST /process-batch** - Manually trigger batch processing
-- **Interactive documentation** at `/docs`
+The API is implemented with FastAPI and exposes the following endpoints:
 
-### Performance & Reliability
+| Method | Endpoint               | Description                                           |
+|--------|------------------------|-------------------------------------------------------|
+| POST   | `/email`               | Submits an email to the processing queue              |
+| GET    | `/status`              | Returns queue statistics and batch metadata           |
+| GET    | `/health`              | Performs a health check on all system components      |
+| GET    | `/templates`           | Lists available templates (supports `?detailed=true`) |
+| GET    | `/workers/status`      | Reports background worker pool state                  |
+| POST   | `/process-batch`       | Manually triggers processing of the next batch        |
+| GET    | `/docs`                | Interactive API documentation (Swagger UI)            |
 
-- **Handles thousands of requests** with paginated queue storage
-- **Worker pool** for concurrent email processing
-- **Comprehensive logging** with rotation (5MB files, 3 backups)
-- **Graceful error handling** and retry mechanisms
+### Observability
+
+- **Structured logging**: Each module writes to a dedicated log file under `logs/` with automatic rotation (5 MB per file, 3 backup rotations).
+- **Health monitoring**: The `/health` endpoint validates the queue manager, template engine, and SMTP sender connectivity, returning a degraded status if any component is non-functional.
+- **Dead-letter queue**: Emails that exhaust their retry limit are persisted to `data/dead_letter/` with the failure reason and original payload for forensic analysis.
 
 ## Architecture
 
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Client    │───▶│   API       │───▶│   Queue     │───▶│   Worker    │
-│   (HTTP)    │    │   Server    │    │   Manager   │    │   Pool      │
-└─────────────┘    └─────────────┘    └─────────────┘    └──────┬──────┘
-                                                                 │
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐          │
-│   Template  │◀───│   Template  │    │   Email     │◀─────────┘
-│   Files     │    │   Engine    │    │   Sender    │
-└─────────────┘    └─────────────┘    └─────────────┘
++----------------+    +----------------+    +----------------+    +----------------+
+|   HTTP Client  |--->|  API Server    |--->|  Queue Manager |--->|  Worker Pool   |
+|   (External)   |    |  (FastAPI)     |    |  (JSON Batches)|    |  (Thread Pool) |
++----------------+    +----------------+    +----------------+    +--------+-------+
+                                                                           |
++----------------+    +----------------+    +----------------+             |
+|  Template      |<---|  Template      |    |  Email Sender  |<-----------+
+|  Files         |    |  Engine        |    |  (SMTP Client) |
++----------------+    +----------------+    +----------------+
 ```
+
+The processing pipeline operates as follows:
+
+1. Incoming email requests are received by the FastAPI server and converted into `EmailRequest` data objects.
+2. If a template name is specified, the template engine renders the subject and body using variable substitution before enqueuing.
+3. The queue manager persists the request to a JSON batch file using atomic write semantics.
+4. Worker threads in the pool poll the queue manager for available batches, claim a batch via atomic file rename (`.processing` suffix), and dispatch emails via the `EmailSender`.
+5. Completed batches are moved to the trash directory. Emails that exceed the retry threshold are routed to the dead-letter store.
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.8+
-- SMTP server credentials (configured in `.env` file)
-- FastAPI and Uvicorn 
+- Python 3.8 or later
+- Access to an SMTP server with credentials
+- `pip` package installer
 
 ### Installation
 
-1. **Clone and setup environment:**
+1. Clone the repository and configure environment variables:
 
 ```bash
-# Create .env file from example
 cp .env.example .env
+```
 
-# Edit .env with your SMTP credentials
+2. Edit `.env` with your SMTP credentials:
+
+```bash
 nano .env
 ```
 
-2. **Install dependencies:**
+3. Install dependencies:
 
 ```bash
 pip install fastapi uvicorn pydantic python-dotenv
 ```
 
-3. **Start the API server:**
+4. Start the API server:
 
 ```bash
 python api_server.py
 ```
 
-4. **Access the API documentation:**
+5. Access the API documentation at `http://localhost:8000/docs`.
 
-Open http://localhost:8000/docs in your browser
+### Configuration
 
-### Configuration (.env file)
+All configuration is managed through environment variables, read at process start by a Pydantic `Settings` model in `config.py`:
 
 ```env
 SENDER_EMAIL=your-email@example.com
 PASSWORD="your-smtp-password"
 SMTP_SERVER=smtp.gmail.com
 PORT=465
+AUTO_PROCESSING_ENABLED=True
+NUM_WORKERS=3
+WORKER_POLLING_INTERVAL=5
 ```
 
-## Usage Examples
+| Variable                  | Type    | Default | Description                                    |
+|---------------------------|---------|---------|------------------------------------------------|
+| `SENDER_EMAIL`            | string  | --      | SMTP authentication username and From address  |
+| `PASSWORD`                | string  | --      | SMTP authentication password                   |
+| `SMTP_SERVER`             | string  | --      | SMTP server hostname                           |
+| `PORT`                    | integer | --      | SMTP server port (typically 465 for SSL)       |
+| `AUTO_PROCESSING_ENABLED` | boolean | True    | Enable background worker pool on startup       |
+| `NUM_WORKERS`             | integer | 3       | Number of concurrent worker threads            |
+| `WORKER_POLLING_INTERVAL` | integer | 5       | Polling interval in seconds for workers        |
 
-### Submit an Email via API
+## Usage
+
+### Submit an Email
 
 ```bash
 curl -X POST "http://localhost:8000/email" \
   -H "Content-Type: application/json" \
   -d '{
     "subject": "Welcome Email",
-    "body": "Welcome to our service!",
+    "body": "Welcome to our service.",
     "to_email": "user@example.com",
     "format": "multipart"
   }'
 ```
 
-### Submit Email with Template
+### Submit an Email Using a Template
 
-The system comes with 4 pre-defined templates. Simply specify the template name and provide the required variables:
+The system includes four pre-defined templates (`verify`, `welcome`, `password_reset`, `notification`). Provide the template name and the required variables.
 
 ```bash
-# Verification email with code
+# Verification email with a confirmation code
 curl -X POST "http://localhost:8000/email" \
   -H "Content-Type: application/json" \
   -d '{
@@ -136,7 +163,7 @@ curl -X POST "http://localhost:8000/email" \
     }
   }'
 
-# Welcome email for new users
+# Welcome message for new user registrations
 curl -X POST "http://localhost:8000/email" \
   -H "Content-Type: application/json" \
   -d '{
@@ -146,7 +173,7 @@ curl -X POST "http://localhost:8000/email" \
       "name": "John Doe",
       "username": "johndoe",
       "email": "john@example.com",
-      "signup_date": "2023-12-23",
+      "signup_date": "2026-05-04",
       "app_name": "MyApp"
     }
   }'
@@ -179,7 +206,7 @@ curl -X POST "http://localhost:8000/email" \
   }'
 ```
 
-### Check Queue Status
+### Queue Status
 
 ```bash
 curl "http://localhost:8000/status"
@@ -191,13 +218,13 @@ curl "http://localhost:8000/status"
 curl "http://localhost:8000/health"
 ```
 
-### List Available Templates
+### List Templates
 
 ```bash
-# Simple list
+# Basic listing
 curl "http://localhost:8000/templates"
 
-# Detailed information with placeholders
+# Detailed metadata including placeholders
 curl "http://localhost:8000/templates?detailed=true"
 ```
 
@@ -205,109 +232,104 @@ curl "http://localhost:8000/templates?detailed=true"
 
 ```
 Email_engine/
-├── api_server.py           # FastAPI server with REST endpoints
-├── queue_manager.py        # JSON-based queue system with pagination
-├── worker_pool.py          # Worker threads for concurrent processing
-├── email_sender.py         # Enhanced email sender with retry logic
-├── template_engine.py      # Template system with variable substitution
-├── config.py              # Configuration management (Pydantic)
-├── logger_engine.py       # Logging system with rotation
-├── email_engine.py        # Original email engine (backward compatibility)
-├── .env                   # Environment variables (SMTP credentials)
-├── PROGRESS.md            # Development progress tracking
-├── README.md              # This file
-│
-├── data/                  # Queue storage (auto-generated)
-│   └── queue/
-│       ├── batch_001.json
-│       ├── batch_002.json
-│       └── ...
-│
-├── templates/             # Email templates (auto-generated)
-│   ├── welcome.txt
-│   ├── welcome.html
-│   ├── password_reset.txt
-│   └── password_reset.html
-│
-├── logs/                  # Log files (auto-generated)
-│   ├── api_server.log
-│   ├── email_sender.log
-│   ├── worker_pool.log
-│   └── ...
-│
-└── tests/                 # Test files
-    ├── test_queue_system.py
-    ├── test_email_sender.py
-    ├── test_template_engine.py
-    ├── test_api_integration.py
-    └── integration_test.py
++-- api_server.py            FastAPI REST API server with endpoint definitions
++-- queue_manager.py         JSON-serialized queue with file-based pagination
++-- worker_pool.py           Thread pool for concurrent batch processing
++-- email_sender.py          SMTP client with retry, pooling, and multipart support
++-- template_engine.py       File-backed template rendering with variable substitution
++-- config.py                Pydantic-based environment configuration model
++-- logger_engine.py         Rotating file logger setup utility
++-- email_engine.py          Legacy module maintained for backward compatibility
++-- .env                     Environment variables (SMTP credentials, runtime config)
++-- LICENSE                  PolyForm Strictly Noncommercial License 1.0.0
++-- README.md                This document
+
++-- data/
+|   +-- queue/               Active batch files (auto-generated)
+|   +-- dead_letter/         Permanently failed emails with metadata
+|   +-- trash/               Processed or stale batch files
+
++-- templates/               Email template files (auto-generated)
+|   +-- manifest.json        Template metadata and variable definitions
+|   +-- verify.txt
+|   +-- verify.html
+|   +-- welcome.txt
+|   +-- welcome.html
+|   +-- password_reset.txt
+|   +-- password_reset.html
+|   +-- notification.txt
+|   +-- notification.html
+
++-- logs/                    Rotating log output (auto-generated)
+
++-- tests/                   Test suite
+    +-- test_queue_system.py
+    +-- test_email_sender.py
+    +-- test_template_engine.py
+    +-- test_api_integration.py
+    +-- integration_test.py
 ```
 
 ## Testing
 
-Run the complete test suite:
+Execute individual test modules or the full integration suite:
 
 ```bash
-# Test queue system
-python test_queue_system.py
-
-# Test email sender
-python test_email_sender.py
-
-# Test template engine
-python test_template_engine.py
-
-# Test API integration
-python test_api_integration.py
-
-# Run full integration test
-python integration_test.py
+python tests/test_queue_system.py
+python tests/test_email_sender.py
+python tests/test_template_engine.py
+python tests/test_api_integration.py
+python tests/integration_test.py
 ```
 
 ## Performance Characteristics
 
-- **Queue Capacity**: Limited only by disk space (JSON files with pagination)
-- **Processing Speed**: Configurable worker threads (default: 3)
-- **Batch Size**: Configurable (default: 100 emails per batch)
-- **Retry Logic**: 3 attempts with exponential backoff
-- **Memory Usage**: Minimal (processes emails in batches from disk)
+| Metric                    | Value                              |
+|---------------------------|------------------------------------|
+| Queue capacity            | Disk-bound (JSON batch files)      |
+| Batch size                | Configurable (default: 100 emails) |
+| Worker threads            | Configurable (default: 3)          |
+| Retry attempts            | Configurable (default: 3)          |
+| Retry backoff strategy    | Exponential (2^n * base delay)     |
+| Memory footprint          | O(1) per batch (streamed from disk)|
+| SMTP connection pool      | LRU-style with live-connection check|
 
 ## Error Handling
 
-- **Failed emails**: Retried 3 times, then moved to failed queue
-- **SMTP errors**: Connection pooling with automatic reconnection
-- **Template errors**: Graceful fallback to plain text
-- **Queue errors**: File locking for thread safety
-- **API errors**: Proper HTTP status codes and error messages
+- **Transient failures**: SMTP send failures trigger automatic retry with exponential backoff. Failed connections are evicted from the pool and re-established.
+- **Permanent failures**: Emails that exhaust their retry limit are persisted to `data/dead_letter/` with failure metadata and are not re-queued automatically.
+- **Template errors**: Missing templates or invalid variable references raise `ValueError`, which is surfaced to the client as HTTP 400.
+- **Queue corruption**: Invalid JSON in batch files is detected on read; corrupted files are moved to the trash directory and logged.
+- **Stale processing files**: Batch files left in `.processing` state for more than one hour are assumed orphaned and are moved to trash on the next queue poll.
+- **API errors**: All internal exceptions are caught and returned as structured HTTP error responses with appropriate status codes.
 
 ## Monitoring
 
-- **Log files**: Rotated automatically (5MB max, 3 backups)
-- **Queue statistics**: Available via `/status` endpoint
-- **System health**: Available via `/health` endpoint
-- **Performance metrics**: Logged for each batch processed
+- **Log rotation**: Each component writes to a dedicated log file; files are rotated at 5 MB with up to 3 historical backups.
+- **Queue statistics**: The `/status` endpoint reports total batch count, pending email count, and per-batch metadata.
+- **Health checks**: The `/health` endpoint validates queue manager, template engine, and email sender connectivity.
+- **Worker monitoring**: The `/workers/status` endpoint reports active worker count and per-worker state.
 
 ## Production Deployment
 
 ### Recommended Setup
 
-1. **Use process manager** (systemd, supervisor) to run `api_server.py`
+1. Use a process supervisor (systemd, supervisor) to manage the `api_server.py` process with automatic restart.
+2. Centralize logs to a dedicated monitoring platform (e.g., journald, ELK stack, or equivalent).
+3. Implement external monitoring for queue depth, processing latency, and failure rates.
+4. Configure alerting for sustained queue growth or elevated dead-letter rates.
+5. Schedule regular backups of the `templates/` directory and configuration.
 
-2. **Configure logging** to central location
-3. **Set up monitoring** for queue size and processing rate
-4. **Implement alerting** for failed batches
-5. **Regular backups** of template files
+### Scaling
 
-### Scaling Considerations
-
-- Increase `num_workers` in `WorkerPool` for higher throughput
-- Adjust `batch_size` in `QueueManager` based on email volume
-- Monitor disk usage for queue storage
-- Consider database backend for very high volumes (>1M emails)
+- Increase `NUM_WORKERS` to improve throughput on systems with sufficient CPU and SMTP capacity.
+- Adjust `batch_size` to balance per-batch processing duration against polling overhead.
+- Monitor disk I/O under sustained load; queue storage is file-system-backed and may become a bottleneck at high throughput.
+- For production workloads exceeding 1 million emails, consider migrating from file-backed storage to a database-backed queue.
 
 ## Backward Compatibility
 
-The original `email_engine.py` function is preserved:
+The legacy `send_simple_email` function from the original `email_engine.py` module is preserved:
 
 ```python
 from email_sender import send_simple_email
@@ -316,9 +338,19 @@ send_simple_email(
     subject="Test",
     body="Hello",
     to_email="user@example.com",
-    format="plain"  # or "html" or "multipart"
+    format="plain"  # Accepts "plain", "html", or "multipart"
 )
 ```
 
- ## MISSING SECURYTY DONT USE
- ## RACE CONDITIONS FOUNT TOO DONOT USE
+## Known Limitations
+
+- **No authentication or authorization middleware**: The API has no built-in access control. In its current state, any client capable of reaching the HTTP endpoint can submit emails and query system status. Production deployments must implement authentication at the reverse proxy or application layer.
+- **Race conditions in batch claiming**: The worker pool uses atomic file rename as a distributed lock for batch claiming. Under high concurrency with a large number of workers, contention on file system operations may lead to transient `FileNotFoundError` or `PermissionError` exceptions. These are handled gracefully (the worker retries), but the approach is not equivalent to a proper distributed locking mechanism.
+- **File-system-based queue**: Queue persistence relies on the local file system. This implementation does not provide the transactional guarantees, replication, or durability semantics of a dedicated message broker. Data loss is possible in the event of an unclean shutdown during a write operation.
+- **No TLS termination**: The FastAPI server runs over plain HTTP on port 8000. In production, a reverse proxy (e.g., nginx, Caddy, or a cloud load balancer) should terminate TLS.
+
+## License
+
+This project is licensed under the [PolyForm Strictly Noncommercial License 1.0.0](https://polyformproject.org/licenses/strictly-noncommercial/1.0.0). See the `LICENSE` file for the full license text.
+
+Copyright Crellsin. All rights reserved.
