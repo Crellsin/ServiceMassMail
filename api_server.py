@@ -16,7 +16,6 @@ from config import settings
 # Initialize components
 queue_manager = QueueManager()
 template_engine = TemplateEngine()
-email_sender = EmailSender()
 worker_pool = None
 
 # Start worker pool if auto-processing is enabled
