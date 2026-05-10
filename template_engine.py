@@ -437,9 +437,6 @@ Best regards,
         # Remove from cache
         if name in self.templates:
             del self.templates[name]
-
-# Example usage and testing
-if __name__ == "__main__":
     # Initialize template engine
     engine = TemplateEngine()
     

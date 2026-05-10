@@ -287,16 +287,3 @@ async def workers_status():
     except Exception as e:
         logger.error(f"Error getting worker status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-if __name__ == "__main__":
-    logger.info("Starting Email Engine API server")
-    logger.info(f"Auto-processing enabled: {settings.AUTO_PROCESSING_ENABLED}")
-    if settings.AUTO_PROCESSING_ENABLED:
-        logger.info(f"Worker pool started with {settings.NUM_WORKERS} workers")
-    uvicorn.run(
-        "api_server:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
-    )

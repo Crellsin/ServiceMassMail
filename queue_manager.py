@@ -351,18 +351,3 @@ class QueueManager:
             processing_file.unlink(missing_ok=True)
         self._dirty = True
         self._update_batch_index()
-
-
-# if __name__ == "__main__":
-#     qm = QueueManager()
-
-#     for i in range(5):
-#         email = qm.create_email_request(
-#             subject=f"Test Email {i + 1}",
-#             body=f"This is test email body {i + 1}.",
-#             to_email="liderador123@gmail.com",
-#         )
-#         qm.add_email(email)
-
-#     stats = qm.get_queue_stats()
-#     print(f"Queue stats: {json.dumps(stats, indent=2)}")
